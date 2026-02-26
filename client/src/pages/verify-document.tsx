@@ -3,10 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "wouter";
-import { Search, CheckCircle2, XCircle, FileText, Building2, Truck, MapPin, QrCode, Loader2 } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Building2, Truck, MapPin, QrCode, Loader2, Shield, ExternalLink } from "lucide-react";
 import type { Document, DocumentItem } from "@shared/schema";
 
 interface VerifyResult extends Document {
@@ -137,65 +136,96 @@ export default function VerifyDocument() {
               <InfoField label="تاريخ الإنشاء" value={new Date(result.createdAt).toLocaleDateString('ar-IQ')} />
             </div>
 
+            {result.subject && (
+              <div className="p-3 rounded-md bg-muted/40">
+                <p className="text-xs text-muted-foreground mb-1">الموضوع</p>
+                <p className="text-sm font-semibold">{result.subject}</p>
+              </div>
+            )}
+
             <div className="space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-primary" />
                 معلومات الشركة
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InfoField label="اسم الشركة" value={result.companyName} />
-                <InfoField label="التخصص" value={result.specialization || "-"} />
+                <InfoField label="اسم الشركة / المشروع" value={result.companyNameProject || result.companyName} />
+                <InfoField label="اسم المحافظة" value={result.governorateName || "-"} />
               </div>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Truck className="h-4 w-4 text-primary" />
-                معلومات الشحن
+                المعلومات الشخصية
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <InfoField label="اسم سيطرة الدخول" value={result.checkpointNameControl} />
                 <InfoField label="اسم السائق" value={result.driverName} />
-                <InfoField label="رقم المركبة" value={result.vehicleNumber} />
-                <InfoField label="رقم الإجازة" value={result.licenceNumber} />
+                <InfoField label="رقم العجلة" value={result.vehicleNumber} />
+                <InfoField label="محافظة تسجيل العجلة" value={result.registrationGovernorate || "-"} />
+                <InfoField label="نوع / تفاصيل الحمولة" value={result.cargoTypedetails || "-"} />
                 <InfoField label="الوزن / الكمية" value={result.weightQuantity} />
+                <InfoField label="الوجهة النهائية / المحافظة" value={result.destinationGovernorate || "-"} />
+                <InfoField label="العلامة التجارية" value={result.brand || "-"} />
               </div>
             </div>
 
             <div className="space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                المنفذ والموقع
+                <Shield className="h-4 w-4 text-primary" />
+                معلومات الإجازة
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <InfoField label="المنفذ الكمركي" value={result.checkpointName} />
-                <InfoField label="المحافظة" value={result.governorate} />
+                <InfoField label="الجهة المانحة للإجازة" value={result.grantingLicenseApproval || "-"} />
+                <InfoField label="رقم الإجازة / الموافقة" value={result.licenseApprovalNumber || result.licenceNumber} />
+                <InfoField label="تاريخ الإجازة" value={result.licenseApprovalDate || "-"} />
+                <InfoField label="منطوق الإجازة / الاختصاص" value={result.licenseTextSpecialization || "-"} />
               </div>
             </div>
 
+            {result.xCoordinate && result.yCoordinate && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  الموقع الجغرافي
+                </h3>
+                <div className="p-3 rounded-md bg-muted/40">
+                  <a
+                    href={`https://www.google.com/maps?q=${result.xCoordinate},${result.yCoordinate}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#0d6efd] font-bold inline-flex items-center gap-1"
+                  >
+                    <span>{result.xCoordinate}, {result.yCoordinate}</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+
             {result.items && result.items.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold">المواد / البضائع</h3>
+                <h3 className="text-sm font-semibold">المواد / المنتجات المرخَّصة</h3>
                 <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right w-12">#</TableHead>
-                        <TableHead className="text-right">المادة</TableHead>
-                        <TableHead className="text-right">الوحدة</TableHead>
-                        <TableHead className="text-right">الكمية المطلوبة</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-[#990707] text-white">
+                        <th className="py-1.5 px-3 text-right border border-[#bbb]">المادة</th>
+                        <th className="py-1.5 px-3 text-left border border-[#bbb]">الطاقة الإنتاجية</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {result.items.map((item, idx) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell>{item.itemName}</TableCell>
-                          <TableCell>{item.unit}</TableCell>
-                          <TableCell className="font-semibold">{item.requestedQuantity}</TableCell>
-                        </TableRow>
+                        <tr key={item.id || idx} className="even:bg-muted/30">
+                          <td className="py-1.5 px-3 border border-[#bbb]">{item.itemName}</td>
+                          <td className="py-1.5 px-3 border border-[#bbb]" dir="ltr" style={{ textAlign: 'right' }}>
+                            {item.productionCapacity} {item.unit}
+                          </td>
+                        </tr>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

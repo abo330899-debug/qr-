@@ -99,10 +99,10 @@ export async function registerRoutes(
       
       const pdfDoc = new PDFDocument({ 
         size: 'A4', 
-        margin: 40,
+        margin: 30,
         info: {
           Title: `وثيقة شحن - ${doc.documentNumber}`,
-          Author: 'نظام الكمارك',
+          Author: 'الهيئة العامة للكمارك',
         }
       });
       
@@ -128,119 +128,137 @@ export async function registerRoutes(
         }
       };
 
-      pdfDoc.rect(0, 0, 595, 120).fill('#1a5632');
-      
-      useFont(true);
-      pdfDoc.fontSize(18).fillColor('#ffffff');
-      pdfDoc.text('Republic of Iraq', 40, 25, { align: 'right', width: 515 });
-      pdfDoc.fontSize(14);
-      pdfDoc.text('Ministry of Finance', 40, 48, { align: 'right', width: 515 });
-      pdfDoc.text('General Commission of Customs', 40, 68, { align: 'right', width: 515 });
-      
-      pdfDoc.fontSize(16).fillColor('#ffffff');
-      pdfDoc.text('SHIPMENT DOCUMENT', 40, 92, { align: 'center', width: 515 });
+      const pageW = 595;
+      const margin = 30;
+      const contentW = pageW - margin * 2;
 
-      let y = 140;
+      pdfDoc.rect(0, 0, pageW, 100).fill('#1a5632');
       
       useFont(true);
-      pdfDoc.fontSize(11).fillColor('#333333');
+      pdfDoc.fontSize(11).fillColor('#ffffff');
+      pdfDoc.text('Republic of Iraq', margin, 15, { align: 'right', width: contentW });
+      pdfDoc.fontSize(10);
+      pdfDoc.text('Ministry of Finance', margin, 30, { align: 'right', width: contentW });
+      pdfDoc.text('General Commission of Customs', margin, 44, { align: 'right', width: contentW });
       
-      const drawField = (label: string, value: string, xPos: number, yPos: number, width: number) => {
-        pdfDoc.rect(xPos, yPos, width, 28).fill('#f8f9fa').stroke('#e0e0e0');
+      pdfDoc.fontSize(10).fillColor('#ffffff');
+      pdfDoc.text('جمهورية العراق', margin, 15, { align: 'left', width: contentW });
+      pdfDoc.text('وزارة المالية', margin, 30, { align: 'left', width: contentW });
+      pdfDoc.text('الهيئة العامة للكمارك', margin, 44, { align: 'left', width: contentW });
+
+      pdfDoc.fontSize(14).fillColor('#ffffff');
+      pdfDoc.text('منصة المنتج المحلي', margin, 70, { align: 'center', width: contentW });
+
+      let y = 110;
+
+      useFont(true);
+      pdfDoc.fontSize(9).fillColor('#333333');
+      
+      const drawMetaRow = (label: string, value: string, xPos: number, yPos: number, width: number) => {
         useFont(true);
-        pdfDoc.fontSize(9).fillColor('#666666');
-        pdfDoc.text(label, xPos + 8, yPos + 3, { width: width - 16, align: 'right' });
+        pdfDoc.fontSize(8).fillColor('#666');
+        pdfDoc.text(label, xPos, yPos, { width, align: 'right' });
         useFont(false);
-        pdfDoc.fontSize(10).fillColor('#333333');
-        pdfDoc.text(value || '-', xPos + 8, yPos + 14, { width: width - 16, align: 'right' });
+        pdfDoc.fontSize(9).fillColor('#333');
+        pdfDoc.text(value || '—', xPos, yPos + 10, { width, align: 'left' });
       };
 
-      drawField('Document Number', doc.documentNumber, 300, y, 255);
-      drawField('Date', new Date(doc.createdAt).toLocaleDateString('en-GB'), 40, y, 255);
-      y += 35;
-      
-      drawField('Company Name', doc.companyName, 300, y, 255);
-      drawField('Checkpoint', doc.checkpointName, 40, y, 255);
-      y += 35;
-      
-      drawField('Driver Name', doc.driverName, 300, y, 255);
-      drawField('Vehicle Number', doc.vehicleNumber, 40, y, 255);
-      y += 35;
-      
-      drawField('License Number', doc.licenceNumber, 300, y, 255);
-      drawField('Governorate', doc.governorate, 40, y, 255);
-      y += 35;
-      
-      drawField('Weight/Quantity', doc.weightQuantity, 300, y, 255);
-      if (doc.specialization) {
-        drawField('Specialization', doc.specialization, 40, y, 255);
+      const halfW = contentW / 2 - 5;
+      drawMetaRow('رقم الوثيقة', doc.documentNumber, margin + halfW + 10, y, halfW);
+      drawMetaRow('تاريخ الوثيقة', new Date(doc.createdAt).toLocaleDateString('ar-IQ'), margin, y, halfW);
+      y += 28;
+
+      if (doc.subject) {
+        pdfDoc.rect(margin, y, contentW, 18).fill('#f6f6f6').stroke('#ddd');
+        useFont(true);
+        pdfDoc.fontSize(9).fillColor('#333');
+        pdfDoc.text(`الموضوع / ${doc.subject}`, margin + 6, y + 4, { width: contentW - 12, align: 'right' });
+        y += 24;
       }
-      y += 45;
+
+      const tableX = margin;
+      const col1W = contentW * 0.35;
+      const col2W = contentW * 0.65;
+      const rowH = 16;
+
+      const drawTableHeader = (title: string) => {
+        pdfDoc.rect(tableX, y, contentW, rowH + 2).fill('#990707');
+        useFont(true);
+        pdfDoc.fontSize(9).fillColor('#fff');
+        pdfDoc.text(title, tableX, y + 3, { width: contentW, align: 'center' });
+        y += rowH + 2;
+      };
+
+      const drawTableRow = (label: string, value: string) => {
+        pdfDoc.rect(tableX, y, col1W, rowH).stroke('#bbb');
+        pdfDoc.rect(tableX + col1W, y, col2W, rowH).stroke('#bbb');
+        useFont(true);
+        pdfDoc.fontSize(8).fillColor('#333');
+        pdfDoc.text(label, tableX + 4, y + 3, { width: col1W - 8, align: 'right' });
+        useFont(false);
+        pdfDoc.text(value || '', tableX + col1W + 4, y + 3, { width: col2W - 8, align: 'right' });
+        y += rowH;
+      };
+
+      drawTableHeader('المعلومات الشخصية');
+      drawTableRow('اسم سيطرة الدخول', doc.checkpointNameControl);
+      drawTableRow('اسم السائق', doc.driverName);
+      drawTableRow('رقم العجلة', doc.vehicleNumber);
+      drawTableRow('محافظة تسجيل العجلة', doc.registrationGovernorate || '');
+      drawTableRow('نوع / تفاصيل الحمولة', doc.cargoTypedetails || '');
+      drawTableRow('الوزن / الكمية', doc.weightQuantity);
+      drawTableRow('الوجهة النهائية / المحافظة', doc.destinationGovernorate || '');
+      drawTableRow('اسم المحافظة', doc.governorateName || '');
+      drawTableRow('اسم الشركة / المشروع', doc.companyNameProject || doc.companyName);
+      drawTableRow('الجهة المانحة للإجازة / الموافقة', doc.grantingLicenseApproval || '');
+      drawTableRow('رقم الإجازة / الموافقة', doc.licenseApprovalNumber || doc.licenceNumber);
+      drawTableRow('تاريخ الإجازة / الموافقة', doc.licenseApprovalDate || '');
+      drawTableRow('منطوق الإجازة / الاختصاص', doc.licenseTextSpecialization || '');
+      drawTableRow('العلامة التجارية', doc.brand || '');
 
       if (items.length > 0) {
+        pdfDoc.rect(tableX, y, contentW, rowH + 2).fill('#990707');
         useFont(true);
-        pdfDoc.fontSize(12).fillColor('#1a5632');
-        pdfDoc.text('Items', 40, y, { align: 'center', width: 515 });
-        y += 25;
+        pdfDoc.fontSize(9).fillColor('#fff');
+        pdfDoc.text('المواد / المنتجات المرخَّصة', tableX, y + 3, { width: contentW, align: 'center' });
+        y += rowH + 2;
 
-        const colWidths = [40, 150, 90, 70, 80, 85];
-        const headers = ['#', 'Item Name', 'Production Line', 'Unit', 'Capacity', 'Requested Qty'];
-        
-        pdfDoc.rect(40, y, 515, 22).fill('#1a5632');
-        useFont(true);
-        pdfDoc.fontSize(8).fillColor('#ffffff');
-        let xPos = 40;
-        headers.forEach((h, i) => {
-          pdfDoc.text(h, xPos + 4, y + 6, { width: colWidths[i] - 8, align: 'center' });
-          xPos += colWidths[i];
-        });
-        y += 22;
-
-        items.forEach((item, idx) => {
-          const bgColor = idx % 2 === 0 ? '#ffffff' : '#f8f9fa';
-          pdfDoc.rect(40, y, 515, 20).fill(bgColor).stroke('#e0e0e0');
+        items.forEach((item) => {
+          pdfDoc.rect(tableX, y, col1W, rowH).stroke('#bbb');
+          pdfDoc.rect(tableX + col1W, y, col2W, rowH).stroke('#bbb');
           useFont(false);
-          pdfDoc.fontSize(8).fillColor('#333333');
-          xPos = 40;
-          const vals = [
-            String(idx + 1),
-            item.itemName,
-            item.productionLine || '-',
-            item.unit,
-            item.productionCapacity || '-',
-            item.requestedQuantity,
-          ];
-          vals.forEach((v, i) => {
-            pdfDoc.text(v, xPos + 4, y + 5, { width: colWidths[i] - 8, align: 'center' });
-            xPos += colWidths[i];
-          });
-          y += 20;
+          pdfDoc.fontSize(8).fillColor('#333');
+          pdfDoc.text(item.itemName, tableX + 4, y + 3, { width: col1W - 8, align: 'right' });
+          pdfDoc.text(`${item.productionCapacity || ''} ${item.unit}`, tableX + col1W + 4, y + 3, { width: col2W - 8, align: 'left' });
+          y += rowH;
         });
       }
 
-      y += 20;
+      y += 10;
       if (doc.qrCodeData) {
         const qrImageData = doc.qrCodeData.replace(/^data:image\/png;base64,/, '');
         const qrBuffer = Buffer.from(qrImageData, 'base64');
-        const qrX = (595 - 120) / 2;
-        pdfDoc.image(qrBuffer, qrX, y, { width: 120, height: 120 });
-        y += 130;
-        useFont(false);
-        pdfDoc.fontSize(8).fillColor('#666666');
-        pdfDoc.text('Scan to verify document', 40, y, { align: 'center', width: 515 });
+        const qrSize = 130;
+        const qrX = (pageW - qrSize) / 2;
+        pdfDoc.image(qrBuffer, qrX, y, { width: qrSize, height: qrSize });
+        y += qrSize + 8;
       }
 
-      if (doc.notes) {
-        y += 20;
-        useFont(false);
-        pdfDoc.fontSize(9).fillColor('#666666');
-        pdfDoc.text(`Notes: ${doc.notes}`, 40, y, { align: 'right', width: 515 });
-      }
-
-      const pageHeight = 842;
       useFont(false);
-      pdfDoc.fontSize(7).fillColor('#999999');
-      pdfDoc.text('This document can be verified using the QR code at the relevant authorities connected to the system.', 40, pageHeight - 50, { align: 'center', width: 515 });
+      pdfDoc.fontSize(7).fillColor('#666');
+      pdfDoc.text('إن احتفاظك بهذه الوثيقة يمكّنك من استخدامها لدى الجهات المرتبطة بالنظام.', margin, y, { align: 'center', width: contentW });
+      y += 10;
+      pdfDoc.text('يمكنك حفظ صورة الوثيقة في الهاتف لاستخدامها عند الحاجة.', margin, y, { align: 'center', width: contentW });
+
+      const footerY = 842 - 45;
+      pdfDoc.rect(0, footerY - 5, pageW, 50).fill('#f8f8f8');
+      pdfDoc.moveTo(margin, footerY - 5).lineTo(pageW - margin, footerY - 5).stroke('#bbb');
+      useFont(true);
+      pdfDoc.fontSize(7).fillColor('#555');
+      pdfDoc.text('مكتب رئيس الوزراء / المركز الوطني للتحول الرقمي', margin, footerY + 2, { align: 'center', width: contentW });
+      useFont(false);
+      pdfDoc.fontSize(6).fillColor('#888');
+      pdfDoc.text('بغداد – كرادة مريم | المركز الوطني للتحول الرقمي @2025', margin, footerY + 14, { align: 'center', width: contentW });
 
       pdfDoc.end();
     } catch (error: any) {
@@ -301,13 +319,24 @@ async function seedData() {
   const doc1 = await storage.createDocument({
     companyId: company1.id,
     companyName: company1.companyName,
+    companyNameProject: "شركة الرافدين للصناعات الغذائية",
+    subject: "نقل مواد غذائية من بغداد إلى البصرة",
     driverName: "أحمد محمد علي",
     vehicleNumber: "12345 - بغداد",
     licenceNumber: "DRV-2024-001",
-    checkpointName: "نقطة أم قصر",
-    governorate: "البصرة",
+    checkpointNameControl: "نقطة أم قصر",
+    registrationGovernorate: "بغداد",
+    cargoTypedetails: "مواد غذائية - طحين وسكر",
     weightQuantity: "25 طن",
-    specialization: "مواد غذائية",
+    destinationGovernorate: "البصرة",
+    governorateName: "البصرة",
+    xCoordinate: "47.9822",
+    yCoordinate: "30.5085",
+    grantingLicenseApproval: "وزارة الصناعة والمعادن",
+    licenseApprovalNumber: "IND-2024-001",
+    licenseApprovalDate: "2024-01-15",
+    licenseTextSpecialization: "تصنيع وتوزيع مواد غذائية",
+    brand: "الرافدين",
     notes: "شحنة مواد غذائية أساسية",
   });
 
@@ -318,32 +347,41 @@ async function seedData() {
     
     await storage.createDocumentItem({
       documentId: doc1.id,
+      hashId: "HASH-001-A",
       itemName: "طحين أبيض",
-      productionLine: "خط 1",
       unit: "طن",
       productionCapacity: "100",
-      requestedQuantity: "15",
     });
     await storage.createDocumentItem({
       documentId: doc1.id,
+      hashId: "HASH-001-B",
       itemName: "سكر أبيض",
-      productionLine: "خط 2",
       unit: "طن",
       productionCapacity: "50",
-      requestedQuantity: "10",
     });
   }
 
   const doc2 = await storage.createDocument({
     companyId: company2.id,
     companyName: company2.companyName,
+    companyNameProject: "شركة دجلة للتجارة العامة",
+    subject: "نقل بضائع متنوعة",
     driverName: "حسين كاظم جاسم",
     vehicleNumber: "67890 - البصرة",
     licenceNumber: "DRV-2024-002",
-    checkpointName: "منفذ الشلامجة",
-    governorate: "البصرة",
+    checkpointNameControl: "منفذ الشلامجة",
+    registrationGovernorate: "البصرة",
+    cargoTypedetails: "أجهزة كهربائية منوعة",
     weightQuantity: "18 طن",
-    specialization: "بضائع متنوعة",
+    destinationGovernorate: "بغداد",
+    governorateName: "البصرة",
+    xCoordinate: "47.7835",
+    yCoordinate: "30.5152",
+    grantingLicenseApproval: "وزارة التجارة",
+    licenseApprovalNumber: "TRD-2024-002",
+    licenseApprovalDate: "2024-03-10",
+    licenseTextSpecialization: "تجارة عامة - استيراد وتصدير",
+    brand: "دجلة",
     notes: null,
   });
 
@@ -354,11 +392,10 @@ async function seedData() {
     
     await storage.createDocumentItem({
       documentId: doc2.id,
+      hashId: "HASH-002-A",
       itemName: "أجهزة كهربائية",
-      productionLine: null,
       unit: "قطعة",
       productionCapacity: "500",
-      requestedQuantity: "200",
     });
   }
 }

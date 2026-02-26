@@ -113,7 +113,20 @@ export class MemStorage implements IStorage {
       qrCodeData: null,
       status: "active",
       createdAt: now,
-      specialization: doc.specialization ?? null,
+      licenceNumber: doc.licenceNumber ?? null,
+      companyNameProject: doc.companyNameProject ?? null,
+      subject: doc.subject ?? null,
+      registrationGovernorate: doc.registrationGovernorate ?? null,
+      cargoTypedetails: doc.cargoTypedetails ?? null,
+      destinationGovernorate: doc.destinationGovernorate ?? null,
+      governorateName: doc.governorateName ?? null,
+      xCoordinate: doc.xCoordinate ?? null,
+      yCoordinate: doc.yCoordinate ?? null,
+      grantingLicenseApproval: doc.grantingLicenseApproval ?? null,
+      licenseApprovalNumber: doc.licenseApprovalNumber ?? null,
+      licenseApprovalDate: doc.licenseApprovalDate ?? null,
+      licenseTextSpecialization: doc.licenseTextSpecialization ?? null,
+      brand: doc.brand ?? null,
       notes: doc.notes ?? null,
     };
     this.documents.set(id, newDoc);
@@ -137,7 +150,7 @@ export class MemStorage implements IStorage {
     const newItem: DocumentItem = { 
       ...item, 
       id,
-      productionLine: item.productionLine ?? null,
+      hashId: item.hashId ?? null,
       productionCapacity: item.productionCapacity ?? null,
     };
     this.documentItems.set(id, newItem);
