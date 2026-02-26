@@ -3,9 +3,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useParams } from "wouter";
-import { ArrowRight, Download, Printer, FileText, ExternalLink } from "lucide-react";
+import { ArrowRight, Download, Printer, FileText } from "lucide-react";
 import { Link } from "wouter";
 import type { Document, DocumentItem } from "@shared/schema";
+import "./document-view.css";
 
 interface DocumentWithItems extends Document {
   items: DocumentItem[];
@@ -19,7 +20,38 @@ export default function DocumentView() {
   });
 
   const handlePrint = () => {
-    window.print();
+    const docEl = document.querySelector('.qr-document-root');
+    if (!docEl) { window.print(); return; }
+
+    const html = docEl.outerHTML;
+    const win = window.open('', '_blank', 'width=900,height=1000');
+    if (!win) return;
+
+    const styles: string[] = [];
+    styles.push('<meta charset="utf-8" />');
+    styles.push('<title>طباعة الوثيقة</title>');
+    document.querySelectorAll('style').forEach(s => styles.push(s.outerHTML));
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+      const sep = href.includes('?') ? '&' : '?';
+      styles.push(`<link rel="stylesheet" href="${href}${sep}print_copy=${Date.now()}" />`);
+    });
+
+    win.document.open();
+    win.document.write(`
+      <!doctype html>
+      <html dir="rtl" lang="ar">
+        <head>
+          ${styles.join('\n')}
+        </head>
+        <body>
+          ${html}
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); win.close(); };
   };
 
   const handleDownloadPdf = () => {
@@ -53,6 +85,7 @@ export default function DocumentView() {
 
   const dateStr = new Date(doc.createdAt).toLocaleDateString('ar-IQ', { year: 'numeric', month: '2-digit', day: '2-digit' });
   const timeStr = new Date(doc.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+  const items = doc.items || [];
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -83,90 +116,90 @@ export default function DocumentView() {
         </div>
       </div>
 
-      <div className="print:block" id="printable-document">
-        <div className="bg-[#f3f4f6] p-4 flex justify-center print:p-0 print:bg-white">
-          <div className="bg-white border border-[#d4cece] shadow-md w-full max-w-[210mm] min-h-[297mm] p-[8mm] flex flex-col gap-2.5 print:shadow-none print:border-none print:p-[10mm]" dir="rtl">
-            <header className="grid grid-cols-[1fr_150px_1fr] items-center gap-2 py-1">
-              <div className="text-right">
-                <div className="text-xs leading-relaxed">
-                  <div>جمهورية العراق</div>
-                  <div>وزارة المالية</div>
-                  <div>الهيئــة العامــة للكمـــارك</div>
+      <div className="qr-document-root">
+        <div className="doc-viewport">
+          <div className="a4-page" dir="rtl">
+            <header className="header-clean">
+              <div className="header-right">
+                <div className="office-lines small">
+                  <div style={{ textAlign: 'right' }}>جمهورية العراق</div>
+                  <div style={{ textAlign: 'right' }}>وزارة المالية</div>
+                  <div style={{ textAlign: 'right' }}>الهيئــة العامــة للكمـــارك</div>
                 </div>
               </div>
-              <div className="flex justify-center">
-                <img src="/images/customes-logo.png" alt="Logo" className="w-[110px] h-[110px] object-contain rounded-full border-[3px] border-[#bbb] p-1.5 bg-white" />
+              <div className="header-center logo-wrap">
+                <img src="/images/customes-logo.png" alt="Logo" className="center-logo" />
               </div>
-              <div className="text-left">
-                <div className="flex flex-col gap-1">
-                  <div className="flex gap-2 items-center justify-between">
-                    <span className="font-bold whitespace-nowrap text-xs">رقم الوثيقة</span>
-                    <span className="text-xs break-all" dir="ltr" data-testid="text-doc-number">{doc.documentNumber}</span>
+              <div className="header-left">
+                <div className="doc-meta">
+                  <div className="meta-line">
+                    <span className="meta-label">رقم الوثيقة</span>
+                    <span className="meta-value" data-testid="text-doc-number">{doc.documentNumber}</span>
                   </div>
-                  <div className="flex gap-2 items-center justify-between">
-                    <span className="font-bold whitespace-nowrap text-xs">تاريخ إنشاء الوثيقة</span>
-                    <span className="text-xs" dir="ltr">{dateStr}</span>
+                  <div className="meta-line">
+                    <span className="meta-label">تاريخ إنشاء الوثيقة</span>
+                    <span className="meta-value">{dateStr}</span>
                   </div>
-                  <div className="flex gap-2 items-center justify-between">
-                    <span className="font-bold whitespace-nowrap text-xs">التوقيت</span>
-                    <span className="text-xs" dir="ltr">{timeStr}</span>
+                  <div className="meta-line">
+                    <span className="meta-label">التوقيت</span>
+                    <span className="meta-value">{timeStr}</span>
                   </div>
                 </div>
-                <div className="mt-2 print:hidden">
-                  <button type="button" onClick={handlePrint} className="bg-[#0d6efd] text-white border-none py-1.5 px-2.5 rounded-md font-bold cursor-pointer text-xs shadow-sm hover:opacity-95">
+                <div className="doc-actions">
+                  <button type="button" className="print-btn" title="طباعة الوثيقة" onClick={handlePrint}>
                     طباعة الوثيقة
                   </button>
                 </div>
               </div>
             </header>
 
-            <hr className="border-t border-black/10 my-1" />
+            <hr className="divider" />
 
-            <div className="flex-1 flex flex-col gap-2.5">
-              <h2 className="text-center text-lg font-bold my-1">منصة المنتج المحلي</h2>
+            <div className="content">
+              <h2 className="doc-title">منصة المنتج المحلي</h2>
 
               {doc.subject && (
-                <div className="flex gap-3 items-center flex-wrap">
-                  <strong className="text-sm">الموضوع /</strong>
-                  <div className="flex-1 bg-[#f6f6f6] rounded-md py-1.5 px-2.5 font-semibold min-w-[200px] text-sm">{doc.subject}</div>
+                <div className="subject-row">
+                  <strong>الموضوع /</strong>
+                  <div className="subject-field">{doc.subject}</div>
                 </div>
               )}
 
-              <div dir="rtl">
-                <table className="w-full border-collapse text-sm">
+              <div className="info-section" dir="rtl">
+                <table className="info-table">
                   <colgroup>
-                    <col style={{ width: "35%" }} />
-                    <col style={{ width: "65%" }} />
+                    <col style={{ width: '35%' }} />
+                    <col style={{ width: '65%' }} />
                   </colgroup>
                   <thead>
                     <tr>
-                      <th colSpan={2} className="bg-[#990707] text-white text-center py-1 px-1.5 border border-[#bbb]">المعلومات الشخصية</th>
+                      <th colSpan={2}>المعلومات الشخصية</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <DocRow label="اسم سيطرة الدخول" value={doc.checkpointNameControl} />
-                    <DocRow label="اسم السائق" value={doc.driverName} />
-                    <DocRow label="رقم العجلة" value={doc.vehicleNumber} />
-                    <DocRow label="محافظة تسجيل العجلة" value={doc.registrationGovernorate} />
-                    <DocRow label="نوع / تفاصيل الحمولة" value={doc.cargoTypedetails} />
-                    <DocRow label="الوزن / الكمية" value={doc.weightQuantity} />
-                    <DocRow label="الوجهة النهائية / المحافظة" value={doc.destinationGovernorate} />
-                    <DocRow label="اسم المحافظة" value={doc.governorateName} />
-                    <DocRow label="اسم الشركة / المشروع" value={doc.companyNameProject || doc.companyName} />
-                    <DocRow label="الجهة المانحة للإجازة / الموافقة" value={doc.grantingLicenseApproval} />
-                    <DocRow label="رقم الإجازة / الموافقة" value={doc.licenseApprovalNumber || doc.licenceNumber} />
-                    <DocRow label="تاريخ الإجازة / الموافقة" value={doc.licenseApprovalDate} />
-                    <DocRow label="منطوق الإجازة / الاختصاص" value={doc.licenseTextSpecialization} />
-                    <DocRow label="العلامة التجارية" value={doc.brand} />
-                    {doc.items && doc.items.length > 0 && (
+                    <tr><td>اسم سيطرة الدخول</td><td>{doc.checkpointNameControl || ''}</td></tr>
+                    <tr><td>اسم السائق</td><td>{doc.driverName || ''}</td></tr>
+                    <tr><td>رقم العجلة</td><td>{doc.vehicleNumber || ''}</td></tr>
+                    <tr><td>محافظة تسجيل العجلة</td><td>{doc.registrationGovernorate || ''}</td></tr>
+                    <tr><td>نوع / تفاصيل الحمولة</td><td>{doc.cargoTypedetails || ''}</td></tr>
+                    <tr><td>الوزن / الكمية</td><td>{doc.weightQuantity || ''}</td></tr>
+                    <tr><td>الوجهة النهائية / المحافظة</td><td>{doc.destinationGovernorate || ''}</td></tr>
+                    <tr><td>اسم المحافظة</td><td>{doc.governorateName || ''}</td></tr>
+                    <tr><td>اسم الشركة / المشروع</td><td>{doc.companyNameProject || doc.companyName || ''}</td></tr>
+                    <tr><td>الجهة المانحة للإجازة / الموافقة</td><td>{doc.grantingLicenseApproval || ''}</td></tr>
+                    <tr><td>رقم الإجازة / الموافقة</td><td>{doc.licenseApprovalNumber || doc.licenceNumber || ''}</td></tr>
+                    <tr><td>تاريخ الإجازة / الموافقة</td><td>{doc.licenseApprovalDate || ''}</td></tr>
+                    <tr><td>منطوق الإجازة / الاختصاص</td><td>{doc.licenseTextSpecialization || ''}</td></tr>
+                    <tr><td>العلامة التجارية</td><td>{doc.brand || ''}</td></tr>
+                    {items.length > 0 && (
                       <>
                         <tr>
-                          <th colSpan={2} className="bg-[#990707] text-white text-center py-1 px-1.5 border border-[#bbb] font-bold">المواد / المنتجات المرخَّصة</th>
+                          <th colSpan={2} className="info-header">المواد / المنتجات المرخَّصة</th>
                         </tr>
-                        {doc.items.map((item, idx) => (
+                        {items.map((item, idx) => (
                           <tr key={item.id || idx}>
-                            <td className="border border-[#bbb] py-1 px-1.5">{item.itemName}</td>
-                            <td className="border border-[#bbb] py-1 px-1.5" style={{ direction: 'ltr', textAlign: 'right' }}>
+                            <td>{item.itemName}</td>
+                            <td style={{ direction: 'ltr', textAlign: 'right' }}>
                               {item.productionCapacity} {item.unit}
                             </td>
                           </tr>
@@ -178,61 +211,55 @@ export default function DocumentView() {
               </div>
 
               {doc.qrCodeData && (
-                <div className="flex justify-center mt-4">
-                  <img src={doc.qrCodeData} alt="QR" className="w-[58mm] max-w-full bg-white border border-black/5 p-1.5" data-testid="img-qr-code" crossOrigin="anonymous" />
+                <div className="qr-wrap large-qr">
+                  <img src={doc.qrCodeData} alt="QR" className="barcode-img" data-testid="img-qr-code" crossOrigin="anonymous" />
                 </div>
               )}
 
-              <div className="text-center text-xs text-gray-500 mt-2 space-y-1">
-                <p>إن احتفاظك بهذه الوثيقة يمكّنك من استخدامها لدى الجهات المرتبطة بالنظام.</p>
-                <p>يمكنك حفظ صورة الوثيقة في الهاتف لاستخدامها عند الحاجة.</p>
-                {doc.xCoordinate && doc.yCoordinate && (
-                  <p>
-                    <a
-                      href={`https://www.google.com/maps?q=${doc.xCoordinate},${doc.yCoordinate}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#0d6efd] font-bold inline-flex items-center gap-1"
-                    >
-                      <span>{doc.xCoordinate}, {doc.yCoordinate}</span>
-                      <ExternalLink className="h-3 w-3 inline" />
+              <div className="notes centered">
+                <div style={{ textAlign: 'center' }}>
+                  <p>إن احتفاظك بهذه الوثيقة يمكّنك من استخدامها لدى الجهات المرتبطة بالنظام.</p>
+                  <p>يمكنك حفظ صورة الوثيقة في الهاتف لاستخدامها عند الحاجة.</p>
+                  {doc.xCoordinate && doc.yCoordinate && (
+                    <p>
+                      <a
+                        href={`https://www.google.com/maps?q=${doc.xCoordinate},${doc.yCoordinate}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="external-link"
+                      >
+                        {doc.xCoordinate}, {doc.yCoordinate} ↗
+                      </a>
+                    </p>
+                  )}
+                  <p className="muted">
+                    لمزيد من المعلومات عن الخدمات الحكومية الإلكترونية يمكن زيارة:{" "}
+                    <a href="https://ur.gov.iq" target="_blank" rel="noopener noreferrer" className="external-link">
+                      https://ur.gov.iq
                     </a>
                   </p>
-                )}
-                <p className="text-gray-400">
-                  لمزيد من المعلومات عن الخدمات الحكومية الإلكترونية يمكن زيارة:{" "}
-                  <a href="https://ur.gov.iq" target="_blank" rel="noopener noreferrer" className="text-[#0d6efd] font-bold">https://ur.gov.iq</a>
-                </p>
+                </div>
               </div>
             </div>
 
-            <footer className="flex items-center justify-between gap-2.5 border-t border-[#bbb] pt-2 flex-wrap mt-auto">
-              <div>
-                <img src="/images/ur-logo.png" alt="Logo" className="w-[72px] h-[56px] object-contain" />
+            <footer className="doc-footer">
+              <div className="footer-left">
+                <img src="/images/ur-logo.png" alt="Logo" className="footer-logo" />
               </div>
-              <div className="text-center">
-                <div className="text-xs font-bold">مكتب رئيس الوزراء / المركز الوطني للتحول الرقمي</div>
-                <div className="text-xs">بغداد – كرادة مريم</div>
-                <div className="text-xs">المركز الوطني للتحول الرقمي @2025</div>
+              <div className="footer-center">
+                <div className="small"><strong>مكتب رئيس الوزراء / المركز الوطني للتحول الرقمي</strong></div>
+                <div className="small">بغداد – كرادة مريم</div>
+                <div className="small">المركز الوطني للتحول الرقمي @2025</div>
               </div>
-              <div className="text-left" dir="ltr">
-                <div className="text-xs">Prime Minister's Office</div>
-                <div className="text-xs">National Center for Digital Transformation</div>
-                <div className="text-xs">Tel: 5599</div>
+              <div className="footer-right en-footer" dir="ltr">
+                <div className="small">Prime Minister's Office</div>
+                <div className="small">National Center for Digital Transformation</div>
+                <div className="small">Tel: 5599</div>
               </div>
             </footer>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function DocRow({ label, value }: { label: string; value: string | null | undefined }) {
-  return (
-    <tr>
-      <td className="border border-[#bbb] py-1 px-1.5 font-medium text-sm">{label}</td>
-      <td className="border border-[#bbb] py-1 px-1.5 text-sm">{value || ""}</td>
-    </tr>
   );
 }
