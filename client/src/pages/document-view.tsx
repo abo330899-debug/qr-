@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useParams } from "wouter";
 import { ArrowRight, Download, Printer, FileText } from "lucide-react";
 import { Link } from "wouter";
+import { QRCodeSVG } from "qrcode.react";
 import type { Document, DocumentItem } from "@shared/schema";
 import "./document-view.css";
 
@@ -86,6 +87,7 @@ export default function DocumentView() {
   const dateStr = new Date(doc.createdAt).toLocaleDateString('ar-IQ', { year: 'numeric', month: '2-digit', day: '2-digit' });
   const timeStr = new Date(doc.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
   const items = doc.items || [];
+  const verifyUrl = `${window.location.origin}/verify/${doc.documentNumber}`;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -210,11 +212,17 @@ export default function DocumentView() {
                 </table>
               </div>
 
-              {doc.qrCodeData && (
-                <div className="qr-wrap large-qr">
-                  <img src={doc.qrCodeData} alt="QR" className="barcode-img" data-testid="img-qr-code" crossOrigin="anonymous" />
+              <div className="qr-wrap large-qr">
+                <div className="barcode-img" data-testid="img-qr-code">
+                  <QRCodeSVG
+                    value={verifyUrl}
+                    size={220}
+                    level="M"
+                    fgColor="#000000"
+                    bgColor="#ffffff"
+                  />
                 </div>
-              )}
+              </div>
 
               <div className="notes centered">
                 <div style={{ textAlign: 'center' }}>

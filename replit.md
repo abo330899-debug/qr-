@@ -59,8 +59,17 @@ Key fields based on actual customs API:
 - `GET /api/documents/verify/:documentNumber` - Verify document
 - `GET /api/qr/generate?text=...` - Generate QR code
 
+## QR Code Implementation
+- **Client-side generation**: Uses `qrcode.react` (QRCodeSVG) matching original system's client-side approach
+- **Server-side generation**: Uses `qrcode` npm package for PDF export and stored base64 data
+- **QR Scanner**: Camera-based scanning on verify page using native `BarcodeDetector` API with `html5-qrcode` fallback
+- **QR Data**: Encodes verification URL (`/verify/:documentNumber`)
+- **Document View CSS**: Uses exact CSS classes from original system (`.qr-document-root`, `.doc-viewport`, `.a4-page`, `.header-clean`, `.info-table`, `.qr-wrap.large-qr`, `.barcode-img`, `.doc-footer`, etc.)
+
 ## Dependencies
-- qrcode - QR code generation
+- qrcode - Server-side QR code generation (PDF export)
+- qrcode.react - Client-side QR code rendering (SVG)
+- html5-qrcode - QR code scanning fallback
 - pdfkit - PDF document generation
 - adm-zip - ZIP file extraction (dev utility)
 

@@ -1,16 +1,166 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "wouter";
-import { Search, CheckCircle2, XCircle, Building2, Truck, MapPin, QrCode, Loader2, Shield, ExternalLink } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Building2, Truck, MapPin, QrCode, Loader2, Shield, ExternalLink, Camera, CameraOff } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import type { Document, DocumentItem } from "@shared/schema";
 
 interface VerifyResult extends Document {
   items: DocumentItem[];
   valid: boolean;
+}
+
+function QrScanner({ onScan }: { onScan: (text: string) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [active, setActive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanningRef = useRef(false);
+
+  const stopCamera = useCallback(() => {
+    scanningRef.current = false;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setActive(false);
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setActive(true);
+      scanningRef.current = true;
+
+      if ('BarcodeDetector' in window) {
+        const detector = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
+        const scan = async () => {
+          if (!scanningRef.current || !videoRef.current) return;
+          try {
+            const barcodes = await detector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              const raw = barcodes[0].rawValue;
+              stopCamera();
+              onScan(raw);
+              return;
+            }
+          } catch {}
+          if (scanningRef.current) requestAnimationFrame(scan);
+        };
+        requestAnimationFrame(scan);
+      } else {
+        const { Html5Qrcode } = await import("html5-qrcode");
+        const containerId = 'qr-reader-hidden-' + Date.now();
+        const container = document.createElement('div');
+        container.id = containerId;
+        container.style.display = 'none';
+        document.body.appendChild(container);
+        const html5QrCode = new Html5Qrcode(containerId);
+
+        const cleanupFallback = () => {
+          try { html5QrCode.clear(); } catch {}
+          try { container.remove(); } catch {}
+        };
+
+        const origStop = stopCamera;
+        const wrappedStop = () => { cleanupFallback(); origStop(); };
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+
+        const pollScan = async () => {
+          if (!scanningRef.current || !videoRef.current) {
+            cleanupFallback();
+            return;
+          }
+          const video = videoRef.current;
+          if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            try {
+              const blob = await new Promise<Blob>((resolve, reject) => {
+                canvas.toBlob(b => b ? resolve(b) : reject(), 'image/png');
+              });
+              const file = new File([blob], 'frame.png', { type: 'image/png' });
+              const result = await html5QrCode.scanFileV2(file, false);
+              if (result) {
+                wrappedStop();
+                onScan(result.decodedText);
+                return;
+              }
+            } catch {}
+          }
+          if (scanningRef.current) setTimeout(pollScan, 500);
+        };
+        pollScan();
+      }
+    } catch (err: any) {
+      setError("لا يمكن الوصول إلى الكاميرا. تأكد من إعطاء الإذن.");
+      setActive(false);
+    }
+  }, [onScan, stopCamera]);
+
+  useEffect(() => {
+    return () => { stopCamera(); };
+  }, [stopCamera]);
+
+  return (
+    <div className="w-full space-y-3">
+      {!active ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full gap-2"
+          onClick={startCamera}
+          data-testid="button-scan-qr"
+        >
+          <Camera className="h-4 w-4" />
+          مسح رمز QR بالكاميرا
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <div className="relative rounded-lg overflow-hidden border-2 border-primary/30 bg-black" style={{ maxHeight: 280 }}>
+            <video
+              ref={videoRef}
+              className="w-full"
+              style={{ maxHeight: 280, objectFit: 'cover' }}
+              playsInline
+              muted
+              data-testid="video-qr-scanner"
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-48 h-48 border-2 border-white/60 rounded-lg" />
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full gap-2"
+            onClick={stopCamera}
+            data-testid="button-stop-scan"
+          >
+            <CameraOff className="h-4 w-4" />
+            إيقاف الكاميرا
+          </Button>
+        </div>
+      )}
+      {error && <p className="text-sm text-destructive text-center">{error}</p>}
+    </div>
+  );
 }
 
 export default function VerifyDocument() {
@@ -57,11 +207,29 @@ export default function VerifyDocument() {
     doVerify(documentNumber);
   };
 
+  const handleQrScan = (scannedText: string) => {
+    let docNum = scannedText;
+    try {
+      const url = new URL(scannedText);
+      const parts = url.pathname.split('/');
+      const verifyIdx = parts.indexOf('verify');
+      if (verifyIdx !== -1 && parts[verifyIdx + 1]) {
+        docNum = decodeURIComponent(parts[verifyIdx + 1]);
+      }
+    } catch {}
+
+    setDocumentNumber(docNum);
+    doVerify(docNum);
+    toast({ title: "تم مسح الرمز", description: `رقم الوثيقة: ${docNum}` });
+  };
+
+  const verifyUrl = result ? `${window.location.origin}/verify/${result.documentNumber}` : '';
+
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold" data-testid="text-page-title">التحقق من وثيقة</h1>
-        <p className="text-muted-foreground text-sm">أدخل رقم الوثيقة للتحقق من صحتها ومعلوماتها</p>
+        <p className="text-muted-foreground text-sm">أدخل رقم الوثيقة أو امسح رمز QR للتحقق من صحتها ومعلوماتها</p>
       </div>
 
       <Card>
@@ -70,6 +238,15 @@ export default function VerifyDocument() {
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
               <QrCode className="h-10 w-10 text-primary" />
             </div>
+
+            <QrScanner onScan={handleQrScan} />
+
+            <div className="w-full flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">أو أدخل الرقم يدوياً</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
             <div className="w-full space-y-3">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -230,13 +407,18 @@ export default function VerifyDocument() {
               </div>
             )}
 
-            {result.qrCodeData && (
-              <div className="flex flex-col items-center gap-2 pt-4">
-                <div className="p-2 bg-white rounded-md border">
-                  <img src={result.qrCodeData} alt="QR" className="w-28 h-28" />
-                </div>
+            <div className="flex flex-col items-center gap-2 pt-4">
+              <div className="p-3 bg-white rounded-md border" data-testid="img-verify-qr">
+                <QRCodeSVG
+                  value={verifyUrl}
+                  size={128}
+                  level="M"
+                  fgColor="#000000"
+                  bgColor="#ffffff"
+                />
               </div>
-            )}
+              <p className="text-xs text-muted-foreground">رمز التحقق السريع</p>
+            </div>
           </CardContent>
         </Card>
       )}
