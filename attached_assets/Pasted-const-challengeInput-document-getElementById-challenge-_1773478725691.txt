@@ -1,0 +1,171 @@
+const challengeInput = document.getElementById("challenge");
+const saltInput = document.getElementById("salt");
+const maxNumberInput = document.getElementById("maxNumber");
+
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+
+const statusText = document.getElementById("statusText");
+const currentNumber = document.getElementById("currentNumber");
+const elapsedTime = document.getElementById("elapsedTime");
+const progressBar = document.getElementById("progressBar");
+const resultBox = document.getElementById("resultBox");
+
+let isRunning = false;
+
+/**
+ * يحسب SHA-256 لنص معين
+ * @param {string} text
+ * @returns {Promise<string>}
+ */
+async function sha256(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  
+  return hashArray
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * يعرض النتيجة في صندوق النتيجة
+ * @param {string} message
+ */
+function setResult(message) {
+  resultBox.textContent = message;
+}
+
+/**
+ * تحديث الواجهة أثناء التنفيذ
+ * @param {number} testedNumber
+ * @param {number} maxNumber
+ * @param {number} startedAt
+ */
+function updateUI(testedNumber, maxNumber, startedAt) {
+  currentNumber.textContent = testedNumber.toLocaleString("en-US");
+  
+  const percent = maxNumber === 0 ? 0 : (testedNumber / maxNumber) * 100;
+  progressBar.style.width = `${Math.min(percent, 100)}%`;
+  
+  const seconds = (performance.now() - startedAt) / 1000;
+  elapsedTime.textContent = `${seconds.toFixed(2)} ثانية`;
+}
+
+/**
+ * التحقق من صحة المدخلات
+ * @returns {{challenge:string, salt:string, maxNumber:number} | null}
+ */
+function getValidatedInputs() {
+  const challenge = challengeInput.value.trim().toLowerCase();
+  const salt = saltInput.value.trim();
+  const maxNumber = Number(maxNumberInput.value);
+  
+  const sha256Regex = /^[a-f0-9]{64}$/;
+  
+  if (!sha256Regex.test(challenge)) {
+    setResult("خطأ: قيمة Challenge يجب أن تكون SHA-256 hex بطول 64 حرف.");
+    return null;
+  }
+  
+  if (!salt) {
+    setResult("خطأ: حقل Salt فارغ.");
+    return null;
+  }
+  
+  if (!Number.isInteger(maxNumber) || maxNumber < 0) {
+    setResult("خطأ: Max Number يجب أن يكون رقمًا صحيحًا غير سالب.");
+    return null;
+  }
+  
+  return { challenge, salt, maxNumber };
+}
+
+/**
+ * حل اللغز
+ */
+async function solveProofOfWork() {
+  if (isRunning) {
+    return;
+  }
+  
+  const inputs = getValidatedInputs();
+  if (!inputs) {
+    return;
+  }
+  
+  const { challenge, salt, maxNumber } = inputs;
+  
+  isRunning = true;
+  startBtn.disabled = true;
+  statusText.textContent = "جاري الحل...";
+  setResult("بدأ البحث عن الرقم الصحيح...");
+  progressBar.style.width = "0%";
+  currentNumber.textContent = "0";
+  elapsedTime.textContent = "0.00 ثانية";
+  
+  const startedAt = performance.now();
+  
+  try {
+    for (let i = 0; i <= maxNumber; i++) {
+      const textToHash = salt + i;
+      const hash = await sha256(textToHash);
+      
+      if (i % 5000 === 0) {
+        updateUI(i, maxNumber, startedAt);
+        
+        // نترك المتصفح يتنفس بدل ما يشنق الواجهة مثل باب قديم
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+      
+      if (hash === challenge) {
+        updateUI(i, maxNumber, startedAt);
+        statusText.textContent = "تم العثور على الحل";
+        
+        const totalSeconds = (performance.now() - startedAt) / 1000;
+        
+        setResult(
+          `تم العثور على الحل بنجاح.\n\n` +
+          `الرقم الصحيح: ${i}\n` +
+          `الوقت المستغرق: ${totalSeconds.toFixed(2)} ثانية\n` +
+          `النص الذي حقق التطابق:\n${salt}${i}\n\n` +
+          `SHA-256:\n${hash}`
+        );
+        
+        isRunning = false;
+        startBtn.disabled = false;
+        return;
+      }
+    }
+    
+    statusText.textContent = "لم يتم العثور على حل";
+    setResult("انتهى الفحص بالكامل ولم يتم العثور على أي رقم مطابق.");
+  } catch (error) {
+    console.error(error);
+    statusText.textContent = "حدث خطأ";
+    setResult(`حدث خطأ أثناء التنفيذ:\n${error.message}`);
+  } finally {
+    isRunning = false;
+    startBtn.disabled = false;
+  }
+}
+
+/**
+ * إعادة ضبط الواجهة
+ */
+function resetUI() {
+  if (isRunning) {
+    return;
+  }
+  
+  statusText.textContent = "جاهز";
+  currentNumber.textContent = "0";
+  elapsedTime.textContent = "0.00 ثانية";
+  progressBar.style.width = "0%";
+  setResult("لم يبدأ الحل بعد.");
+}
+
+startBtn.addEventListener("click", solveProofOfWork);
+resetBtn.addEventListener("click", resetUI);
