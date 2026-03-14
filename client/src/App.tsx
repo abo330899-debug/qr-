@@ -12,6 +12,7 @@ import Documents from "@/pages/documents";
 import CreateDocument from "@/pages/create-document";
 import DocumentView from "@/pages/document-view";
 import VerifyDocument from "@/pages/verify-document";
+import ProofOfWork from "@/pages/proof-of-work";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/documents/:id" component={DocumentView} />
       <Route path="/verify" component={VerifyDocument} />
       <Route path="/verify/:documentNumber" component={VerifyFromUrl} />
+      <Route path="/proof-of-work" component={ProofOfWork} />
       <Route component={NotFound} />
     </Switch>
   );
