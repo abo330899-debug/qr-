@@ -47,8 +47,9 @@ Key fields based on actual customs API:
 - `/documents` - Document list
 - `/documents/new` - Create new document
 - `/documents/:id` - View document (A4 layout)
-- `/verify` - Verify document
-- `/verify/:documentNumber` - Direct verify URL (from QR)
+- `/verify` - Verify document (with sidebar)
+- `/verify/:documentNumber` - Direct verify URL (from QR, with sidebar)
+- `/qrpubliclink/:qrcode?` - Public QR verification page (no sidebar/header, matches original system route)
 
 ## API Endpoints
 - `GET/POST /api/companies` - List/Create companies
@@ -56,14 +57,16 @@ Key fields based on actual customs API:
 - `GET/POST /api/documents` - List/Create documents
 - `GET /api/documents/:id` - Get document with items
 - `GET /api/documents/:id/pdf` - Download PDF
-- `GET /api/documents/verify/:documentNumber` - Verify document
+- `GET /api/documents/verify/:documentNumber` - Verify document (returns success, data.info.fullName/orgName/orgPathInfo, data.numberOfVersion, data.documentFilePath, document with items)
 - `GET /api/qr/generate?text=...` - Generate QR code
 
 ## QR Code Implementation
 - **Client-side generation**: Uses `qrcode.react` (QRCodeSVG) matching original system's client-side approach
 - **Server-side generation**: Uses `qrcode` npm package for PDF export and stored base64 data
-- **QR Scanner**: Camera-based scanning on verify page using native `BarcodeDetector` API with `html5-qrcode` fallback
+- **QR Scanner**: Camera-based scanning on verify page using native `BarcodeDetector` API with `html5-qrcode` fallback, includes `paintCenterText` overlay for decoded QR text
 - **QR Data**: Encodes verification URL (`/verify/:documentNumber`)
+- **Verify Page**: Two-column layout matching original system (camera+input left, document preview right), with Bootstrap-like styling, `#04408B` blue labels, `btn-red` submit button
+- **Public Route**: `/qrpubliclink` renders without sidebar/header matching original system's `qrlink` route
 - **Document View CSS**: Uses exact CSS classes from original system (`.qr-document-root`, `.doc-viewport`, `.a4-page`, `.header-clean`, `.info-table`, `.qr-wrap.large-qr`, `.barcode-img`, `.doc-footer`, etc.)
 
 ## Dependencies

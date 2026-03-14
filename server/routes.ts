@@ -57,9 +57,24 @@ export async function registerRoutes(
 
   app.get("/api/documents/verify/:documentNumber", async (req, res) => {
     const doc = await storage.getDocumentByNumber(req.params.documentNumber);
-    if (!doc) return res.status(404).json({ message: "الوثيقة غير موجودة", valid: false });
+    if (!doc) return res.status(404).json({ message: "الوثيقة غير موجودة", success: false });
     const items = await storage.getDocumentItems(doc.id);
-    res.json({ ...doc, items, valid: true });
+    const company = doc.companyId ? await storage.getCompany(doc.companyId) : null;
+    res.json({
+      success: true,
+      data: {
+        info: {
+          fullName: doc.driverName,
+          orgName: doc.companyNameProject || doc.companyName,
+          orgPathInfo: company ? `${company.governorate} / ${company.specialization} / ${company.companyName}` : (doc.companyNameProject || doc.companyName),
+        },
+        numberOfVersion: 1,
+        showIn: true,
+        documentFilePath: `/documents/${doc.id}`,
+      },
+      document: { ...doc, items },
+      valid: true,
+    });
   });
 
   app.post("/api/documents", async (req, res) => {

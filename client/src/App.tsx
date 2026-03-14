@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useRoute } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -32,32 +32,54 @@ function VerifyFromUrl() {
   return <VerifyDocument />;
 }
 
+function QrPublicLink() {
+  return <VerifyDocument />;
+}
+
 const sidebarStyle = {
   "--sidebar-width": "16rem",
   "--sidebar-width-icon": "3rem",
 };
 
+function AppLayout() {
+  return (
+    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar />
+        <div className="flex flex-col flex-1 min-w-0">
+          <header className="flex items-center gap-2 p-3 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+            <SidebarTrigger data-testid="button-sidebar-toggle" />
+            <div className="flex items-center gap-2 mr-auto">
+              <img src="/images/customes-logo.png" alt="Logo" className="w-7 h-7" />
+              <span className="text-sm font-semibold hidden sm:inline">الهيئة العامة للكمارك</span>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto">
+            <Router />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
 function App() {
+  const [isQrPublic] = useRoute("/qrpubliclink/:qrcode?");
+  const [isQrPublicBase] = useRoute("/qrpubliclink");
+
+  const isPublicRoute = isQrPublic || isQrPublicBase;
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 min-w-0">
-              <header className="flex items-center gap-2 p-3 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-40">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <div className="flex items-center gap-2 mr-auto">
-                  <img src="/images/customes-logo.png" alt="Logo" className="w-7 h-7" />
-                  <span className="text-sm font-semibold hidden sm:inline">الهيئة العامة للكمارك</span>
-                </div>
-              </header>
-              <main className="flex-1 overflow-auto">
-                <Router />
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        {isPublicRoute ? (
+          <Switch>
+            <Route path="/qrpubliclink/:qrcode?" component={QrPublicLink} />
+            <Route path="/qrpubliclink" component={QrPublicLink} />
+          </Switch>
+        ) : (
+          <AppLayout />
+        )}
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

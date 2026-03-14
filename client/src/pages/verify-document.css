@@ -1,0 +1,253 @@
+.qr-public-page {
+  direction: rtl;
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 20px;
+}
+
+.qr-main-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.qr-public-page .box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.qr-public-page .banner {
+  background: linear-gradient(135deg, #1a5632 0%, #2d7a4a 100%);
+  color: #fff;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-public-page .banner .banner-icon {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+  filter: brightness(10);
+}
+
+.qr-public-page .banner .font {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.qr-public-page .outcamera {
+  margin-bottom: 15px;
+}
+
+.qr-public-page .camera {
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  min-height: 50px;
+}
+
+.qr-public-page .form-group {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.qr-public-page .form-group.row {
+  align-items: center;
+}
+
+.qr-public-page .col-form-label {
+  font-weight: 600;
+}
+
+.qr-public-page .form-control {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  direction: ltr;
+  text-align: left;
+}
+
+.qr-public-page .form-control:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.qr-public-page .btn {
+  display: inline-block;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  padding: 8px 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease-in-out;
+}
+
+.qr-public-page .btn-primary {
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.qr-public-page .btn-primary:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+.qr-public-page .btn-red {
+  color: #fff;
+  background-color: #DC3545;
+  border-color: #DC3545;
+}
+
+.qr-public-page .btn-red:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.qr-public-page .btn-red:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.qr-public-page .btnload {
+  display: inline-block;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #28a745;
+  border: 1px solid #28a745;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.qr-public-page .btnload:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.qr-public-page .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.qr-public-page .table td {
+  padding: 8px 12px;
+  vertical-align: top;
+}
+
+.qr-public-page .table-borderless td {
+  border: none;
+}
+
+.qr-public-page .table-hover tbody tr:hover {
+  background-color: rgba(0,0,0,.03);
+}
+
+.qr-public-page .description {
+  font-size: 13px;
+  color: #555;
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border-right: 3px solid #04408B;
+}
+
+.qr-public-page .mt-1 {
+  margin-top: 4px;
+}
+
+.qr-public-page .mt-2 {
+  margin-top: 8px;
+}
+
+.qr-public-page .col-sm-2,
+.qr-public-page .col-sm-4,
+.qr-public-page .col-sm-6 {
+  flex: 0 0 auto;
+}
+
+.qr-public-page .col-sm-4 {
+  width: 33.333%;
+}
+
+.qr-public-page .col-sm-6 {
+  width: 50%;
+}
+
+.qr-public-page .col-sm-2 {
+  width: 16.667%;
+}
+
+.qr-public-page .framediv {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.qr-public-page hr {
+  border: 0;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  margin: 15px 0;
+}
+
+.qr-footer {
+  background: #1a5632;
+  color: #fff;
+  padding: 15px 20px;
+  margin-top: 30px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.qr-footer p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.qr-footer .footer-bottom {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .qr-public-page .col-sm-4,
+  .qr-public-page .col-sm-6,
+  .qr-public-page .col-sm-2 {
+    width: 100%;
+    text-align: center !important;
+    margin-bottom: 8px;
+  }
+
+  .qr-public-page .form-group.row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .qr-main-row {
+    flex-direction: column;
+  }
+
+  .qr-public-page .table {
+    width: 100% !important;
+  }
+}
