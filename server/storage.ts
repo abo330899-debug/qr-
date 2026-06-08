@@ -2,7 +2,8 @@ import {
   type User, type InsertUser, 
   type Company, type InsertCompany,
   type Document, type InsertDocument,
-  type DocumentItem, type InsertDocumentItem
+  type DocumentItem, type InsertDocumentItem,
+  type Transaction, type InsertTransaction,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -27,6 +28,12 @@ export interface IStorage {
   getDocumentItems(documentId: string): Promise<DocumentItem[]>;
   createDocumentItem(item: InsertDocumentItem): Promise<DocumentItem>;
   deleteDocumentItems(documentId: string): Promise<void>;
+
+  getTransactions(): Promise<Transaction[]>;
+  getTransactionsByCompany(companyId: string): Promise<Transaction[]>;
+  createTransaction(tx: InsertTransaction): Promise<Transaction>;
+  getCompanyBalance(companyId: string): Promise<number>;
+  getAccountingSummary(): Promise<{ company: Company; balance: number; totalCharged: number; totalPaid: number; transactionCount: number }[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -34,12 +41,14 @@ export class MemStorage implements IStorage {
   private companies: Map<string, Company>;
   private documents: Map<string, Document>;
   private documentItems: Map<string, DocumentItem>;
+  private transactions: Map<string, Transaction>;
 
   constructor() {
     this.users = new Map();
     this.companies = new Map();
     this.documents = new Map();
     this.documentItems = new Map();
+    this.transactions = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -113,6 +122,7 @@ export class MemStorage implements IStorage {
       qrCodeData: null,
       status: "active",
       createdAt: now,
+      documentValue: doc.documentValue ?? "0",
       licenceNumber: doc.licenceNumber ?? null,
       companyNameProject: doc.companyNameProject ?? null,
       subject: doc.subject ?? null,
@@ -163,6 +173,60 @@ export class MemStorage implements IStorage {
         this.documentItems.delete(key);
       }
     }
+  }
+
+  async getTransactions(): Promise<Transaction[]> {
+    return Array.from(this.transactions.values()).sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getTransactionsByCompany(companyId: string): Promise<Transaction[]> {
+    return Array.from(this.transactions.values())
+      .filter(t => t.companyId === companyId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createTransaction(tx: InsertTransaction): Promise<Transaction> {
+    const id = randomUUID();
+    const newTx: Transaction = {
+      ...tx,
+      id,
+      createdAt: new Date(),
+      documentId: tx.documentId ?? null,
+      documentNumber: tx.documentNumber ?? null,
+      driverName: tx.driverName ?? null,
+      description: tx.description ?? null,
+      type: tx.type ?? "charge",
+    };
+    this.transactions.set(id, newTx);
+    return newTx;
+  }
+
+  async getCompanyBalance(companyId: string): Promise<number> {
+    const txs = await this.getTransactionsByCompany(companyId);
+    return txs.reduce((sum, tx) => {
+      const amount = parseFloat(tx.amount) || 0;
+      return tx.type === "charge" ? sum + amount : sum - amount;
+    }, 0);
+  }
+
+  async getAccountingSummary(): Promise<{ company: Company; balance: number; totalCharged: number; totalPaid: number; transactionCount: number }[]> {
+    const companies = await this.getCompanies();
+    const result = [];
+    for (const company of companies) {
+      const txs = await this.getTransactionsByCompany(company.id);
+      const totalCharged = txs.filter(t => t.type === "charge").reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+      const totalPaid = txs.filter(t => t.type === "payment").reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+      result.push({
+        company,
+        balance: totalCharged - totalPaid,
+        totalCharged,
+        totalPaid,
+        transactionCount: txs.length,
+      });
+    }
+    return result;
   }
 }
 

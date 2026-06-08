@@ -96,6 +96,19 @@ export async function registerRoutes(
           await storage.createDocumentItem({ ...item, documentId: doc.id });
         }
       }
+
+      const docValue = parseFloat(docData.documentValue || "0");
+      if (docValue > 0) {
+        await storage.createTransaction({
+          companyId: doc.companyId,
+          documentId: doc.id,
+          documentNumber: doc.documentNumber,
+          driverName: doc.driverName,
+          type: "charge",
+          amount: String(docValue),
+          description: `وثيقة شحن - ${doc.driverName} - ${doc.vehicleNumber}`,
+        });
+      }
       
       const updatedDoc = await storage.getDocument(doc.id);
       const docItems = await storage.getDocumentItems(doc.id);
@@ -226,10 +239,13 @@ export async function registerRoutes(
       drawTableRow('اسم المحافظة', doc.governorateName || '');
       drawTableRow('اسم الشركة / المشروع', doc.companyNameProject || doc.companyName);
       drawTableRow('الجهة المانحة للإجازة / الموافقة', doc.grantingLicenseApproval || '');
-      drawTableRow('رقم الإجازة / الموافقة', doc.licenseApprovalNumber || doc.licenceNumber);
+      drawTableRow('رقم الإجازة / الموافقة', doc.licenseApprovalNumber || doc.licenceNumber || '');
       drawTableRow('تاريخ الإجازة / الموافقة', doc.licenseApprovalDate || '');
       drawTableRow('منطوق الإجازة / الاختصاص', doc.licenseTextSpecialization || '');
       drawTableRow('العلامة التجارية', doc.brand || '');
+      if (doc.documentValue && parseFloat(doc.documentValue) > 0) {
+        drawTableRow('قيمة الوثيقة', `${parseFloat(doc.documentValue).toLocaleString('en')} $`);
+      }
 
       if (items.length > 0) {
         pdfDoc.rect(tableX, y, contentW, rowH + 2).fill('#990707');
@@ -289,6 +305,52 @@ export async function registerRoutes(
       res.json({ qrCode });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ─── Accounting Routes ───────────────────────────────────────────────────────
+
+  app.get("/api/accounting/summary", async (_req, res) => {
+    try {
+      const summary = await storage.getAccountingSummary();
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/accounting/:companyId/transactions", async (req, res) => {
+    try {
+      const company = await storage.getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ message: "الشركة غير موجودة" });
+      const transactions = await storage.getTransactionsByCompany(req.params.companyId);
+      const balance = await storage.getCompanyBalance(req.params.companyId);
+      res.json({ company, transactions, balance });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/accounting/:companyId/payment", async (req, res) => {
+    try {
+      const company = await storage.getCompany(req.params.companyId);
+      if (!company) return res.status(404).json({ message: "الشركة غير موجودة" });
+      const { amount, description } = req.body;
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ message: "المبلغ غير صحيح" });
+      }
+      const tx = await storage.createTransaction({
+        companyId: req.params.companyId,
+        type: "payment",
+        amount: String(parseFloat(amount)),
+        description: description || "دفعة مستلمة",
+        documentId: null,
+        documentNumber: null,
+        driverName: null,
+      });
+      res.status(201).json(tx);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 
@@ -353,6 +415,7 @@ async function seedData() {
     licenseTextSpecialization: "تصنيع وتوزيع مواد غذائية",
     brand: "الرافدين",
     notes: "شحنة مواد غذائية أساسية",
+    documentValue: "150",
   });
 
   if (doc1) {
@@ -373,6 +436,16 @@ async function seedData() {
       itemName: "سكر أبيض",
       unit: "طن",
       productionCapacity: "50",
+    });
+
+    await storage.createTransaction({
+      companyId: company1.id,
+      documentId: doc1.id,
+      documentNumber: doc1.documentNumber,
+      driverName: "أحمد محمد علي",
+      type: "charge",
+      amount: "150",
+      description: "وثيقة شحن - أحمد محمد علي - 12345 - بغداد",
     });
   }
 
@@ -398,6 +471,7 @@ async function seedData() {
     licenseTextSpecialization: "تجارة عامة - استيراد وتصدير",
     brand: "دجلة",
     notes: null,
+    documentValue: "220",
   });
 
   if (doc2) {
@@ -411,6 +485,26 @@ async function seedData() {
       itemName: "أجهزة كهربائية",
       unit: "قطعة",
       productionCapacity: "500",
+    });
+
+    await storage.createTransaction({
+      companyId: company2.id,
+      documentId: doc2.id,
+      documentNumber: doc2.documentNumber,
+      driverName: "حسين كاظم جاسم",
+      type: "charge",
+      amount: "220",
+      description: "وثيقة شحن - حسين كاظم جاسم - 67890 - البصرة",
+    });
+
+    await storage.createTransaction({
+      companyId: company2.id,
+      documentId: null,
+      documentNumber: null,
+      driverName: null,
+      type: "payment",
+      amount: "100",
+      description: "دفعة جزئية مستلمة",
     });
   }
 }

@@ -1,5 +1,5 @@
 import { useLocation, Link } from "wouter";
-import { FileText, Building2, QrCode, Search, LayoutDashboard, Shield } from "lucide-react";
+import { FileText, Building2, QrCode, Search, LayoutDashboard, Shield, Wallet } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +19,7 @@ const menuItems = [
   { title: "الوثائق", url: "/documents", icon: FileText },
   { title: "إنشاء وثيقة", url: "/documents/new", icon: QrCode },
   { title: "التحقق من وثيقة", url: "/verify", icon: Search },
+  { title: "الحسابات", url: "/accounting", icon: Wallet },
   { title: "Proof of Work", url: "/proof-of-work", icon: Shield },
 ];
 

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { Plus, Trash2, FileText, Send, MapPin, Building2, Truck, Shield } from "lucide-react";
+import { Plus, Trash2, FileText, Send, MapPin, Building2, Truck, Shield, DollarSign } from "lucide-react";
 import type { Company } from "@shared/schema";
 
 interface ItemForm {
@@ -48,6 +48,7 @@ export default function CreateDocument() {
     licenseTextSpecialization: "",
     brand: "",
     notes: "",
+    documentValue: "",
   });
 
   const [items, setItems] = useState<ItemForm[]>([
@@ -180,9 +181,32 @@ export default function CreateDocument() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>الموضوع</Label>
-              <Input data-testid="input-subject" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder="موضوع الوثيقة" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>الموضوع</Label>
+                <Input data-testid="input-subject" value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} placeholder="موضوع الوثيقة" />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5 text-green-600" />
+                  قيمة الوثيقة بالدولار
+                </Label>
+                <div className="relative">
+                  <Input
+                    data-testid="input-document-value"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={form.documentValue}
+                    onChange={e => setForm({...form, documentValue: e.target.value})}
+                    dir="ltr"
+                    className="pl-8"
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">$</span>
+                </div>
+                <p className="text-xs text-muted-foreground">يُضاف تلقائياً لحساب الشركة المختارة</p>
+              </div>
             </div>
           </CardContent>
         </Card>

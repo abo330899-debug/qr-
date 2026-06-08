@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -46,6 +46,7 @@ export const documents = pgTable("documents", {
   notes: text("notes"),
   qrCodeData: text("qr_code_data"),
   status: text("status").notNull().default("active"),
+  documentValue: text("document_value").default("0"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -56,6 +57,18 @@ export const documentItems = pgTable("document_items", {
   itemName: text("item_name").notNull(),
   unit: text("unit").notNull(),
   productionCapacity: text("production_capacity"),
+});
+
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  documentId: varchar("document_id"),
+  documentNumber: text("document_number"),
+  driverName: text("driver_name"),
+  type: text("type").notNull().default("charge"),
+  amount: text("amount").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -75,6 +88,8 @@ export const insertDocumentSchema = createInsertSchema(documents).omit({
 
 export const insertDocumentItemSchema = createInsertSchema(documentItems).omit({ id: true });
 
+export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, createdAt: true });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Company = typeof companies.$inferSelect;
@@ -83,3 +98,5 @@ export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type DocumentItem = typeof documentItems.$inferSelect;
 export type InsertDocumentItem = z.infer<typeof insertDocumentItemSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
